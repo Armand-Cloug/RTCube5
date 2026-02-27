@@ -1,0 +1,84 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: rtcube5
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    environment:
+      # ── Général ──────────────────────────────────────────────
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "LATEST"
+
+      # ── Identité du serveur ───────────────────────────────────
+      MOTD: "§6RTCube5 §7» §aSurvival"
+      SERVER_NAME: "RTCube5"
+      ICON: /data/server-icon.png
+
+      # ── Whitelist ─────────────────────────────────────────────
+      WHITELIST_ENABLED: "true"
+      ENFORCE_WHITELIST: "true"
+      # Ajoute tes joueurs ici (pseudos séparés par des virgules)
+      WHITELIST: ""
+
+      # ── Opérateurs ────────────────────────────────────────────
+      OPS: ""
+
+      # ── Gameplay Survie ───────────────────────────────────────
+      MODE: "survival"
+      DIFFICULTY: "normal"
+      ALLOW_NETHER: "true"
+      SPAWN_ANIMALS: "true"
+      SPAWN_MONSTERS: "true"
+      SPAWN_NPCS: "true"
+      GENERATE_STRUCTURES: "true"
+      MAX_PLAYERS: "20"
+      PVP: "true"
+      HARDCORE: "false"
+
+      # ── Performance ───────────────────────────────────────────
+      MAX_MEMORY: "4G"
+      INIT_MEMORY: "2G"
+      USE_AIKAR_FLAGS: "true"
+      VIEW_DISTANCE: "10"
+      SIMULATION_DISTANCE: "8"
+
+      # ── Sécurité / Réseau ─────────────────────────────────────
+      ONLINE_MODE: "true"
+      ALLOW_FLIGHT: "false"
+      MAX_TICK_TIME: "60000"
+
+      # ── RCON (pour les commandes à distance) ──────────────────
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "rtcube5_rcon_secret"
+      RCON_PORT: "25575"
+
+    volumes:
+      - ./data:/data
+      - ./backups:/backups
+
+    networks:
+      - minecraft-net
+
+    tty: true
+    stdin_open: true
+
+  # ── Service de sauvegarde toutes les 30 minutes ───────────────
+  backup:
+    image: alpine:latest
+    container_name: rtcube5-backup
+    restart: unless-stopped
+    depends_on:
+      - minecraft
+    volumes:
+      - ./data:/data:ro
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    networks:
+      - minecraft-net
+
+networks:
+  minecraft-net:
+    driver: bridge

@@ -1,0 +1,9 @@
+# Données du serveur (trop lourdes pour Git)
+data/
+backups/
+
+# Secrets
+.env
+
+# Logs
+*.log
