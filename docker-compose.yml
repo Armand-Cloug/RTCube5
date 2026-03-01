@@ -5,25 +5,31 @@ services:
     restart: unless-stopped
     ports:
       - "25565:25565"
+
     environment:
-      # ── Général ──────────────────────────────────────────────
+      # ── Légal ────────────────────────────────────────────────
       EULA: "TRUE"
+
+      # ── Type & Version ────────────────────────────────────────
       TYPE: "PAPER"
-      VERSION: "LATEST"
+      VERSION: "1.21.11"
 
       # ── Identité du serveur ───────────────────────────────────
-      MOTD: "§6RTCube5 §7» §aSurvival"
-      SERVER_NAME: "RTCube5"
+      # Ligne 1 : Titre coloré
+      # Ligne 2 : Sous-titre (séparées par \n)
+      # Codes couleur : §6=or §a=vert §7=gris §e=jaune §b=cyan §c=rouge §f=blanc
+      MOTD: "§6✦ RTCube5 §f| §7«§6✦ §aServer Survival Hard de la Team §6✦§7» §eUne bande de puant qui clique surement plus fort que toi &d(Sauf Volio)"
+
+      # Icône 64x64 montée depuis l'hôte
       ICON: /data/server-icon.png
 
       # ── Whitelist ─────────────────────────────────────────────
       WHITELIST_ENABLED: "true"
       ENFORCE_WHITELIST: "true"
-      # Ajoute tes joueurs ici (pseudos séparés par des virgules)
-      WHITELIST: ""
+      WHITELIST: "Clougounette"   # <-- Mets tes pseudos ici : "Joueur1,Joueur2"
 
       # ── Opérateurs ────────────────────────────────────────────
-      OPS: ""
+      OPS: "Clougounette"         # <-- Mets tes ops ici : "Joueur1"
 
       # ── Gameplay Survie ───────────────────────────────────────
       MODE: "survival"
@@ -49,28 +55,31 @@ services:
       ALLOW_FLIGHT: "false"
       MAX_TICK_TIME: "60000"
 
-      # ── RCON (pour les commandes à distance) ──────────────────
+      # ── RCON ──────────────────────────────────────────────────
       ENABLE_RCON: "true"
-      RCON_PASSWORD: "rtcube5_rcon_secret"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
       RCON_PORT: "25575"
 
     volumes:
       - ./data:/data
+      # L'icône est copiée dans /data au démarrage
+      - ./server-icon.png:/data/server-icon.png:ro
       - ./backups:/backups
 
     networks:
       - minecraft-net
-
     tty: true
     stdin_open: true
 
-  # ── Service de sauvegarde toutes les 30 minutes ───────────────
+  # ── Sauvegarde toutes les 30 minutes ──────────────────────────
   backup:
     image: alpine:latest
     container_name: rtcube5-backup
     restart: unless-stopped
     depends_on:
       - minecraft
+    environment:
+      RCON_PASSWORD: "${RCON_PASSWORD}"
     volumes:
       - ./data:/data:ro
       - ./backups:/backups
