@@ -26,10 +26,10 @@ services:
       # ── Whitelist ─────────────────────────────────────────────
       WHITELIST_ENABLED: "true"
       ENFORCE_WHITELIST: "true"
-      WHITELIST: "Clougounette"   # <-- Mets tes pseudos ici : "Joueur1,Joueur2"
+      WHITELIST: "Clougounette"
 
       # ── Opérateurs ────────────────────────────────────────────
-      OPS: "Clougounette"         # <-- Mets tes ops ici : "Joueur1"
+      OPS: "Clougounette"
 
       # ── Gameplay Survie ───────────────────────────────────────
       MODE: "survival"
@@ -62,8 +62,8 @@ services:
 
     volumes:
       - ./data:/data
-      # L'icône est copiée dans /data au démarrage
       - ./server-icon.png:/data/server-icon.png:ro
+      - ./plugins:/plugins          # 👈 Dépose tes .jar ici sur l'hôte
       - ./backups:/backups
 
     networks:
