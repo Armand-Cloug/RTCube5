@@ -1,82 +1,79 @@
 #!/bin/sh
 # ─────────────────────────────────────────────────────────────────────────────
-# RTCube5 – Script de sauvegarde automatique toutes les 30 minutes
+# RTCube5 – Sauvegarde automatique toutes les 30 minutes (ATM10)
 # ─────────────────────────────────────────────────────────────────────────────
 
 BACKUP_DIR="/backups"
 DATA_DIR="/data"
-WORLD_NAME="world"
-RETENTION_DAYS=7       # Nombre de jours de rétention des sauvegardes
-INTERVAL=1800          # 30 minutes en secondes
+RETENTION_DAYS=7
+INTERVAL=1800
 
-# Installe les dépendances nécessaires
-apk add --no-cache rcon-cli tar gzip > /dev/null 2>&1 || true
+RCON_HOST="minecraft"
+RCON_PORT="25575"
+RCON_PASS="${RCON_PASSWORD:-changeme}"
 
-echo "✅ Service de sauvegarde RTCube5 démarré (toutes les 30 minutes)"
+apk add --no-cache rcon-cli tar gzip > /dev/null 2>&1
+
+rcon() {
+    rcon-cli \
+        --host "${RCON_HOST}" \
+        --port "${RCON_PORT}" \
+        --password "${RCON_PASS}" \
+        "$1" 2>/dev/null || true
+}
+
+echo "✅ Service de sauvegarde RTCube5 (ATM10) démarré"
+echo "   Intervalle : 30 minutes | Rétention : ${RETENTION_DAYS} jours"
+
+# ATM10 met très longtemps à démarrer, on attend bien plus longtemps
+echo "⏳ Attente de 10 minutes pour le démarrage du serveur ATM10..."
+sleep 600
 
 while true; do
     TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
     ARCHIVE="${BACKUP_DIR}/rtcube5_${TIMESTAMP}.tar.gz"
 
-    echo "──────────────────────────────────────────────"
-    echo "🕐 [${TIMESTAMP}] Début de la sauvegarde..."
+    echo "──────────────────────────────────────────────────────"
+    echo "🕐 [${TIMESTAMP}] Début de la sauvegarde ATM10..."
 
-    # Désactive la sauvegarde automatique du serveur avant la copie
-    rcon-cli \
-        --host minecraft \
-        --port 25575 \
-        --password rtcube5_rcon_secret \
-        "say §6[RTCube5] §eSauvegarde en cours..." 2>/dev/null || true
+    rcon "say §6[RTCube5] §eSauvegarde en cours, légère latence possible..."
+    rcon "save-off"
+    rcon "save-all"
+    sleep 10   # ATM10 a besoin de plus de temps pour flusher
 
-    rcon-cli \
-        --host minecraft \
-        --port 25575 \
-        --password rtcube5_rcon_secret \
-        "save-off" 2>/dev/null || true
-
-    rcon-cli \
-        --host minecraft \
-        --port 25575 \
-        --password rtcube5_rcon_secret \
-        "save-all" 2>/dev/null || true
-
-    # Petite attente pour laisser le flush se terminer
-    sleep 5
-
-    # Crée l'archive compressée des worlds
+    # Sauvegarde des mondes + fichiers essentiels
     tar -czf "${ARCHIVE}" \
         -C "${DATA_DIR}" \
-        "${WORLD_NAME}" \
-        "${WORLD_NAME}_nether" \
-        "${WORLD_NAME}_the_end" \
-        2>/dev/null || \
-    tar -czf "${ARCHIVE}" \
-        -C "${DATA_DIR}" \
-        "${WORLD_NAME}" \
+        --exclude="./logs" \
+        --exclude="./crash-reports" \
+        --exclude="./cache" \
+        --exclude="./libraries" \
+        --exclude="./mods" \
+        world \
+        world_nether \
+        world_the_end \
+        server.properties \
+        whitelist.json \
+        ops.json \
+        banned-players.json \
+        banned-ips.json \
         2>/dev/null
 
-    # Réactive la sauvegarde automatique
-    rcon-cli \
-        --host minecraft \
-        --port 25575 \
-        --password rtcube5_rcon_secret \
-        "save-on" 2>/dev/null || true
+    SIZE=$(du -sh "${ARCHIVE}" 2>/dev/null | cut -f1)
 
-    rcon-cli \
-        --host minecraft \
-        --port 25575 \
-        --password rtcube5_rcon_secret \
-        "say §6[RTCube5] §aSauvegarde terminée ✔" 2>/dev/null || true
+    rcon "save-on"
+    rcon "say §6[RTCube5] §aSauvegarde terminée §7(${SIZE}) §a✔"
 
-    echo "✅ Sauvegarde créée : ${ARCHIVE}"
+    echo "✅ Archive : ${ARCHIVE} (${SIZE})"
 
-    # Supprime les sauvegardes plus vieilles que RETENTION_DAYS jours
-    OLD=$(find "${BACKUP_DIR}" -name "rtcube5_*.tar.gz" -mtime +${RETENTION_DAYS} -type f)
-    if [ -n "${OLD}" ]; then
-        echo "🗑️  Suppression des anciennes sauvegardes :"
-        echo "${OLD}" | xargs rm -v
+    # Nettoyage
+    OLD_COUNT=$(find "${BACKUP_DIR}" -name "rtcube5_*.tar.gz" -mtime +${RETENTION_DAYS} | wc -l)
+    if [ "${OLD_COUNT}" -gt 0 ]; then
+        echo "🗑️  Suppression de ${OLD_COUNT} ancienne(s) sauvegarde(s)"
+        find "${BACKUP_DIR}" -name "rtcube5_*.tar.gz" -mtime +${RETENTION_DAYS} -type f -delete
     fi
 
-    echo "💤 Prochaine sauvegarde dans 30 minutes..."
+    TOTAL=$(find "${BACKUP_DIR}" -name "rtcube5_*.tar.gz" | wc -l)
+    echo "📦 Sauvegardes conservées : ${TOTAL} | 💤 Prochaine dans 30 min..."
     sleep ${INTERVAL}
 done

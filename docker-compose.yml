@@ -7,20 +7,24 @@ services:
       - "25565:25565"
 
     environment:
-      # ── Légal ────────────────────────────────────────────────
+      # ── Légal ─────────────────────────────────────────────────
       EULA: "TRUE"
 
-      # ── Type & Version ────────────────────────────────────────
-      TYPE: "PAPER"
-      VERSION: "1.21.11"
+      # ── Type : CurseForge modpack auto-téléchargé ─────────────
+      TYPE: "AUTO_CURSEFORGE"
+
+      # Clé API CurseForge (obligatoire, voir README pour l'obtenir)
+      CF_API_KEY: "${CF_API_KEY}"
+
+      # Slug du modpack ATM10 sur CurseForge
+      CF_SLUG: "all-the-mods-10"
+
+      # Pour figer une version précise du modpack (recommandé en prod)
+      # Laisse vide pour toujours prendre la dernière version stable
+      # CF_FILE_ID: "XXXXXXX"
 
       # ── Identité du serveur ───────────────────────────────────
-      # Ligne 1 : Titre coloré
-      # Ligne 2 : Sous-titre (séparées par \n)
-      # Codes couleur : §6=or §a=vert §7=gris §e=jaune §b=cyan §c=rouge §f=blanc
-      MOTD: "§6✦ RTCube5 §f| §7«§6✦ §aServer Survival Hard de la Team §6✦§7» §eUne bande de puant qui clique surement plus fort que toi &d(Sauf Volio)"
-
-      # Icône 64x64 montée depuis l'hôte
+      MOTD: "§6✦ RTCube5 §f| §7«§6✦ §aServer Survival Hard de la Team §6✦§7» §eUne bande de puant qui clique surement plus fort que toi §d(Sauf Volio)"
       ICON: /data/server-icon.png
 
       # ── Whitelist ─────────────────────────────────────────────
@@ -31,29 +35,45 @@ services:
       # ── Opérateurs ────────────────────────────────────────────
       OPS: "Clougounette"
 
-      # ── Gameplay Survie ───────────────────────────────────────
+      # ── Gameplay ──────────────────────────────────────────────
       MODE: "survival"
-      DIFFICULTY: "normal"
-      ALLOW_NETHER: "true"
-      SPAWN_ANIMALS: "true"
-      SPAWN_MONSTERS: "true"
-      SPAWN_NPCS: "true"
-      GENERATE_STRUCTURES: "true"
+      DIFFICULTY: "hard"
       MAX_PLAYERS: "20"
       PVP: "true"
       HARDCORE: "false"
 
       # ── Performance ───────────────────────────────────────────
-      MAX_MEMORY: "4G"
-      INIT_MEMORY: "2G"
-      USE_AIKAR_FLAGS: "true"
-      VIEW_DISTANCE: "10"
-      SIMULATION_DISTANCE: "8"
+      # ATM10 est lourd : minimum 8G recommandé sur 12G de RAM
+      MAX_MEMORY: "10G"
+      INIT_MEMORY: "4G"
+      JVM_OPTS: >-
+        -XX:+UseG1GC
+        -XX:+ParallelRefProcEnabled
+        -XX:MaxGCPauseMillis=200
+        -XX:+UnlockExperimentalVMOptions
+        -XX:+DisableExplicitGC
+        -XX:+AlwaysPreTouch
+        -XX:G1NewSizePercent=30
+        -XX:G1MaxNewSizePercent=40
+        -XX:G1HeapRegionSize=8M
+        -XX:G1ReservePercent=20
+        -XX:G1HeapWastePercent=5
+        -XX:G1MixedGCCountTarget=4
+        -XX:InitiatingHeapOccupancyPercent=15
+        -XX:G1MixedGCLiveThresholdPercent=90
+        -XX:G1RSetUpdatingPauseTimePercent=5
+        -XX:SurvivorRatio=32
+        -XX:+PerfDisableSharedMem
+        -XX:MaxTenuringThreshold=1
+        -Dfml.readTimeout=90
+        -Dfml.loginTimeout=90
+      VIEW_DISTANCE: "8"
+      SIMULATION_DISTANCE: "6"
 
-      # ── Sécurité / Réseau ─────────────────────────────────────
+      # ── Sécurité ──────────────────────────────────────────────
       ONLINE_MODE: "true"
-      ALLOW_FLIGHT: "false"
-      MAX_TICK_TIME: "60000"
+      ALLOW_FLIGHT: "true"    # Nécessaire avec des mods de vol (ATM10)
+      MAX_TICK_TIME: "-1"     # Désactivé : les mods lourds font dépasser 60s
 
       # ── RCON ──────────────────────────────────────────────────
       ENABLE_RCON: "true"
@@ -63,7 +83,10 @@ services:
     volumes:
       - ./data:/data
       - ./server-icon.png:/data/server-icon.png:ro
-      - ./plugins:/plugins          # 👈 Dépose tes .jar ici sur l'hôte
+      # Mods supplémentaires à ajouter par-dessus ATM10
+      - ./extra-mods:/data/mods/extra
+      # Configs personnalisées des mods
+      - ./config:/data/config/custom
       - ./backups:/backups
 
     networks:
@@ -71,13 +94,22 @@ services:
     tty: true
     stdin_open: true
 
+    # ATM10 met longtemps à démarrer (3-10 min)
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 60s
+      timeout: 30s
+      retries: 10
+      start_period: 600s
+
   # ── Sauvegarde toutes les 30 minutes ──────────────────────────
   backup:
     image: alpine:latest
     container_name: rtcube5-backup
     restart: unless-stopped
     depends_on:
-      - minecraft
+      minecraft:
+        condition: service_healthy
     environment:
       RCON_PASSWORD: "${RCON_PASSWORD}"
     volumes:

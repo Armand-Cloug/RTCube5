@@ -23,16 +23,16 @@ case "$1" in
         echo "✅ Génération annulée."
         ;;
     progress)
-        echo "📊 Progression en cours :"
+        echo "📊 Progression :"
         rcon "chunky progress"
         ;;
     pause)
         echo "⏸️  Mise en pause..."
         rcon "chunky pause"
-        echo "✅ Génération mise en pause. Utilise './chunky.sh resume' pour reprendre."
+        echo "✅ Génération en pause. './chunky.sh resume' pour reprendre."
         ;;
     resume)
-        echo "▶️  Reprise de la génération..."
+        echo "▶️  Reprise..."
         rcon "chunky continue"
         echo "✅ Génération reprise."
         ;;
@@ -40,12 +40,11 @@ case "$1" in
         echo ""
         echo "  Usage : ./chunky.sh <commande>"
         echo ""
-        echo "  Commandes disponibles :"
-        echo "    start     → Lance la génération (radius ${RADIUS} blocs)"
-        echo "    stop      → Annule la génération"
-        echo "    progress  → Affiche la progression"
-        echo "    pause     → Met en pause"
-        echo "    resume    → Reprend après une pause"
+        echo "  start     → Lance la génération (radius ${RADIUS} blocs)"
+        echo "  stop      → Annule"
+        echo "  progress  → Affiche la progression"
+        echo "  pause     → Met en pause"
+        echo "  resume    → Reprend"
         echo ""
         ;;
 esac

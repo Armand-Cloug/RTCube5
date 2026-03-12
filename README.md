@@ -1,6 +1,7 @@
-# 🟩 RTCube5 – Serveur Minecraft Survie Dockerisé
+# 🟩 RTCube5 – All The Mods 10 (ATM10) Dockerisé
 
-Serveur Minecraft Survie **whitelist**, avec sauvegarde automatique toutes les **30 minutes**, lancé en un seul `docker compose up`.
+Serveur **All The Mods 10** sur Minecraft 1.21.1 (NeoForge), whitelist,
+sauvegarde automatique toutes les 30 minutes, lancé en un `docker compose up`.
 
 ---
 
@@ -8,43 +9,78 @@ Serveur Minecraft Survie **whitelist**, avec sauvegarde automatique toutes les *
 
 ```
 rtcube5/
-├── docker-compose.yml      # Orchestration des services
-├── .env                    # Variables d'environnement (secrets)
+├── docker-compose.yml        # Orchestration
+├── .env                      # 🔒 Clé API CurseForge + RCON
 ├── .gitignore
+├── server-icon.png           # Icône 64x64 du serveur
+├── chunky.sh                 # Pré-génération de la map
 ├── scripts/
-│   └── backup.sh           # Script de sauvegarde automatique
-├── data/                   # Données du serveur (généré au 1er démarrage)
-│   ├── world/
-│   ├── server.properties
-│   └── whitelist.json
-└── backups/                # Archives .tar.gz des sauvegardes
+│   └── backup.sh             # Sauvegarde automatique 30 min
+│
+├── extra-mods/               # Mods supplémentaires par-dessus ATM10
+├── config/                   # Configs personnalisées des mods
+│
+├── data/                     # Données serveur (généré au 1er démarrage)
+└── backups/                  # Archives de sauvegarde .tar.gz
 ```
 
 ---
 
 ## 🚀 Démarrage rapide
 
-### 1. Prérequis
+### 1. Obtenir une clé API CurseForge (OBLIGATOIRE)
 
-- [Docker](https://docs.docker.com/get-docker/) installé
-- [Docker Compose](https://docs.docker.com/compose/install/) v2+
+ATM10 est téléchargé automatiquement depuis CurseForge, ce qui nécessite
+une clé API **gratuite** :
 
-### 2. Configurer la whitelist & les opérateurs
+1. Va sur → https://console.curseforge.com/#/api-keys
+2. Connecte-toi (ou crée un compte gratuit)
+3. Génère une clé API
+4. Colle-la dans le fichier `.env` :
 
-Ouvre `docker-compose.yml` et remplis ces deux variables :
-
-```yaml
-WHITELIST: "Joueur1,Joueur2,Joueur3"
-OPS: "Joueur1"
+```env
+CF_API_KEY=ta_cle_ici
 ```
 
-### 3. Lancer le serveur
+### 2. Configurer `.env`
+
+```env
+CF_API_KEY=ta_cle_api_curseforge
+RCON_PASSWORD=un_mot_de_passe_solide
+```
+
+### 3. Ajouter tes joueurs dans `docker-compose.yml`
+
+```yaml
+WHITELIST: "Clougounette,Volio,AutreJoueur"
+OPS: "Clougounette"
+```
+
+### 4. Lancer
 
 ```bash
 docker compose up -d
+docker compose logs -f minecraft
 ```
 
-C'est tout ! Le serveur démarre, génère le monde, et les sauvegardes commencent automatiquement.
+> ⚠️ Le **premier démarrage prend 10 à 20 minutes** : téléchargement du
+> modpack ATM10 (~500 Mo) + installation NeoForge + génération du spawn.
+> C'est normal, ne pas redémarrer !
+
+Tu verras cette ligne quand c'est prêt :
+```
+[Server thread/INFO]: Done (Xs)! For help, type "help"
+```
+
+---
+
+## 🎮 Connexion client
+
+Les joueurs doivent utiliser le **launcher CurseForge ou le launcher ATM**
+avec le modpack **All The Mods 10** installé côté client.
+
+- Version : **Minecraft 1.21.1**
+- Modpack : **All The Mods 10** (même version que le serveur)
 
 ---
 
@@ -54,38 +90,64 @@ C'est tout ! Le serveur démarre, génère le monde, et les sauvegardes commence
 |---|---|
 | Démarrer | `docker compose up -d` |
 | Arrêter | `docker compose down` |
-| Voir les logs serveur | `docker compose logs -f minecraft` |
-| Voir les logs backup | `docker compose logs -f backup` |
-| Console du serveur | `docker attach rtcube5` (Ctrl+P puis Ctrl+Q pour quitter) |
-| Redémarrer le serveur | `docker compose restart minecraft` |
+| Logs serveur | `docker compose logs -f minecraft` |
+| Logs backup | `docker compose logs -f backup` |
+| Console | `docker attach rtcube5` (quitter : Ctrl+P puis Ctrl+Q) |
+| Redémarrer | `docker compose restart minecraft` |
 
 ---
 
 ## 🛡️ Whitelist
 
-### Ajouter un joueur via la console Docker
-
 ```bash
-docker exec rtcube5 rcon-cli whitelist add <pseudo>
-```
-
-### Retirer un joueur
-
-```bash
-docker exec rtcube5 rcon-cli whitelist remove <pseudo>
-```
-
-### Voir la whitelist
-
-```bash
-docker exec rtcube5 rcon-cli whitelist list
+docker exec rtcube5 rcon-cli "whitelist add <pseudo>"
+docker exec rtcube5 rcon-cli "whitelist remove <pseudo>"
+docker exec rtcube5 rcon-cli "whitelist list"
 ```
 
 ---
 
-## 💾 Sauvegardes
+## 🗺️ Pré-génération de la map (Chunky)
 
-Les sauvegardes sont stockées dans `./backups/` sous forme d'archives `.tar.gz` :
+Chunky est inclus dans ATM10. Lance la pré-génération une fois le serveur
+démarré pour éviter tout lag d'exploration :
+
+```bash
+chmod +x chunky.sh
+./chunky.sh start     # Lance (radius 15 000 blocs, ~3-5h)
+./chunky.sh progress  # Suivi
+./chunky.sh pause     # Pause
+./chunky.sh resume    # Reprendre
+./chunky.sh stop      # Annuler
+```
+
+---
+
+## 🧩 Ajouter des mods supplémentaires
+
+Dépose tes `.jar` NeoForge 1.21.1 dans `./extra-mods/` et redémarre :
+
+```bash
+cp MonMod.jar ./extra-mods/
+docker compose restart minecraft
+```
+
+> ⚠️ Les plugins Bukkit/Spigot ne sont **pas compatibles** avec NeoForge.
+> Pour les fonctionnalités habituellement couvertes par des plugins,
+> utilise ces mods équivalents :
+
+| Besoin | Mod équivalent NeoForge |
+|---|---|
+| /home, /warp, /tpa | **FTB Essentials** |
+| Protection de zones | **FTB Chunks** (inclus ATM10) |
+| Économie | **FTB Money** |
+| Chat Discord ↔ Minecraft | **DiscordIntegration** (mod Forge) |
+| Anti-grief / logs | **Forge Utilities** |
+| Tablist custom | **Model Name** ou **Neat** |
+
+---
+
+## 💾 Sauvegardes
 
 ```
 backups/
@@ -94,23 +156,16 @@ backups/
 └── ...
 ```
 
-- **Fréquence** : toutes les 30 minutes
-- **Rétention** : 7 jours (les plus vieilles sont supprimées automatiquement)
-- Pendant la sauvegarde, le serveur avertit les joueurs en jeu
+- Fréquence : **toutes les 30 minutes**
+- Rétention : **7 jours**
+- Contenu : worlds + server.properties + whitelist/ops/bans
 
-### Restaurer une sauvegarde
+### Restaurer
 
 ```bash
-# 1. Arrêter le serveur
 docker compose down
-
-# 2. Supprimer l'ancien monde
 rm -rf ./data/world ./data/world_nether ./data/world_the_end
-
-# 3. Extraire la sauvegarde choisie
 tar -xzf ./backups/rtcube5_YYYY-MM-DD_HH-MM-SS.tar.gz -C ./data/
-
-# 4. Relancer
 docker compose up -d
 ```
 
@@ -118,54 +173,30 @@ docker compose up -d
 
 ## ⚙️ Configuration avancée
 
-### Changer la mémoire allouée
+### Figer la version du modpack (recommandé en prod)
 
-Dans `.env` :
-
-```env
-MAX_MEMORY=6G
-INIT_MEMORY=3G
-```
-
-### Changer la difficulté
-
-Dans `docker-compose.yml` :
+Récupère le `File ID` sur la page CurseForge d'ATM10, puis dans
+`docker-compose.yml` décommente :
 
 ```yaml
-DIFFICULTY: "hard"   # peaceful | easy | normal | hard
+CF_FILE_ID: "XXXXXXX"
 ```
 
-### Changer le port
+### Mémoire
+
+Avec 12 Go de RAM sur le VPS, la config actuelle alloue **10 Go** à Java.
+Si tu as d'autres services qui tournent, réduis à `8G` :
 
 ```yaml
-ports:
-  - "25566:25565"    # port_hôte:port_conteneur
-```
-
-### Utiliser RCON pour envoyer des commandes
-
-```bash
-docker exec rtcube5 rcon-cli "<commande>"
-
-# Exemples :
-docker exec rtcube5 rcon-cli "time set day"
-docker exec rtcube5 rcon-cli "weather clear"
-docker exec rtcube5 rcon-cli "op <pseudo>"
+MAX_MEMORY: "8G"
+INIT_MEMORY: "4G"
 ```
 
 ---
 
-## 🔌 Port exposé
+## 🔌 Ports
 
 | Port | Usage |
 |---|---|
-| `25565` | Connexion Minecraft (TCP) |
-| `25575` | RCON (interne uniquement) |
-
----
-
-## 📦 Image utilisée
-
-Ce projet utilise **[itzg/minecraft-server](https://github.com/itzg/docker-minecraft-server)**, l'image Docker Minecraft la plus complète et maintenue activement.
-
-Le type de serveur est **PaperMC** (fork optimisé de Spigot) pour de meilleures performances.
+| `25565` | Connexion Minecraft |
+| `25575` | RCON (interne Docker) |
