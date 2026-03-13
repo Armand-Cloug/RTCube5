@@ -84,7 +84,7 @@ services:
       - ./data:/data
       - ./server-icon.png:/data/server-icon.png:ro
       # Mods supplémentaires à ajouter par-dessus ATM10
-      - ./extra-mods:/data/mods/extra
+      - ./extra-mods:/data/mods
       # Configs personnalisées des mods
       - ./config:/data/config/custom
       - ./backups:/backups

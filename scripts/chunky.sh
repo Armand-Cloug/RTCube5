@@ -5,9 +5,30 @@
 
 CONTAINER="rtcube5"
 RADIUS=15000
+RCON_PORT=25575
+
+# Charge le .env depuis la racine du projet (un niveau au-dessus de scripts/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/../.env"
+
+if [ -f "$ENV_FILE" ]; then
+    RCON_PASSWORD=$(grep '^RCON_PASSWORD=' "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
+else
+    echo "❌ Fichier .env introuvable à ${ENV_FILE}"
+    exit 1
+fi
+
+if [ -z "$RCON_PASSWORD" ]; then
+    echo "❌ RCON_PASSWORD vide dans le .env"
+    exit 1
+fi
 
 rcon() {
-    docker exec "$CONTAINER" rcon-cli "$1"
+    sudo docker exec "$CONTAINER" rcon-cli \
+        --host localhost \
+        --port "$RCON_PORT" \
+        --password "$RCON_PASSWORD" \
+        "$1"
 }
 
 case "$1" in
@@ -29,7 +50,7 @@ case "$1" in
     pause)
         echo "⏸️  Mise en pause..."
         rcon "chunky pause"
-        echo "✅ Génération en pause. './chunky.sh resume' pour reprendre."
+        echo "✅ Génération en pause. Utilise './chunky.sh resume' pour reprendre."
         ;;
     resume)
         echo "▶️  Reprise..."
